@@ -6,50 +6,85 @@ import (
 	"os"
 	"time"
 
+	"github.com/oleoneto/redic/db"
 	"github.com/oleoneto/redic/pkg/core"
-	"github.com/oleoneto/redic/pkg/parsers"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
+
+	_ "github.com/jackc/pgx/v5/stdlib"
+)
+
+var (
+	// Channels
+	signaler = make(chan map[string]core.DictEntry)
+
+	// Database
+	database db.SqlEngineProtocol
+
+	// Loader + Reader
+	loader core.LoaderFunc = os.ReadDir
+	reader core.ReaderFunc = os.ReadFile
+
+	// Parser
+	wordParser core.ParserFunc = func(b []byte) map[string]core.DictEntry {
+		var entries map[string]core.DictEntry
+
+		err := yaml.Unmarshal(b, &entries)
+		if err != nil {
+			return nil
+		}
+
+		signaler <- entries
+
+		return entries
+	}
+
+	// Options
+	basePath     = "./wordnet/english"
+	databaseName = "redic.db"
+
+	// Logger
+	_ = logrus.New()
 )
 
 func main() {
 	start := time.Now()
 
-	wordnet := parsers.WordNet{}
-
-	var out = make(chan map[string]core.WordEntry)
-
-	path := "./wordnet/english"
-
-	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Minute)
 	defer cancel()
 
-	files := wordnet.LoadFiles(ctx, path, os.ReadDir)
+	ParseAndSave(ctx)
 
-	wordnet.ParseContent(ctx, path, files, os.ReadFile, func(b []byte) {
-		var entries map[string]core.WordEntry
+	fmt.Println("Total elapsed time:", time.Since(start))
+}
 
-		err := yaml.Unmarshal(b, &entries)
-		if err != nil {
-			return
-		}
+func ParseAndSave(ctx context.Context) {
+	db.UseSQLite(databaseName)
 
-		out <- entries
-	})
+	wordnet := core.NewWordNet(loader, reader, wordParser)
 
-	var words []core.Word
+	files := wordnet.LoadFiles(ctx, basePath)
 
-	for i := 0; i < len(files); i++ {
-		select {
-		case entries := <-out:
-			for _, e := range entries {
-				words = append(words, e.Words()...)
-			}
-
-			fmt.Println(len(words), "words from", len(entries), "entries")
-		case <-ctx.Done():
-			fmt.Println("Done")
-		}
+	err := wordnet.ParseContent(ctx, basePath, files)
+	if err != nil {
+		panic(err)
 	}
 
-	fmt.Println("Elapsed time:", time.Since(start))
+	for i := range files {
+		select {
+		case <-ctx.Done():
+			fmt.Println(ctx.Err())
+			os.Exit(0)
+
+		case entries := <-signaler:
+			total := len(entries)
+			for _, e := range entries {
+				for _, word := range e.Words() {
+					word.Save(ctx, database)
+				}
+			}
+
+			fmt.Printf("#%d -  %d entries in %s\n", i+1, total, files[i].Name())
+		}
+	}
 }

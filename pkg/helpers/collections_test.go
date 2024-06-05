@@ -1,13 +1,11 @@
-package helpers
+package helpers_test
 
 import (
 	"reflect"
 	"testing"
-)
 
-func stringPointer(v string) *string {
-	return &v
-}
+	"github.com/oleoneto/redic/pkg/helpers"
+)
 
 // MARK: Collection Helpers
 
@@ -15,13 +13,13 @@ func Test_Contains(t *testing.T) {
 	collection := []string{"something", "else", "any", "thing"}
 
 	key := "any"
-	if !Contains(collection, key) {
+	if !helpers.Contains(collection, key) {
 		t.Errorf(`expected %v to be in collection`, key)
 	}
 
 	keys := []string{"test", "art", "think"}
 	for _, key := range keys {
-		ok := Contains(collection, key)
+		ok := helpers.Contains(collection, key)
 		if ok {
 			t.Errorf(`expected %v to not be in collection`, key)
 		}
@@ -72,7 +70,7 @@ func Test_Map(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := Map(tt.args.collection, tt.args.transformFunc); !reflect.DeepEqual(got, tt.want) {
+			if got := helpers.Map(tt.args.collection, tt.args.transformFunc); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Map() = %v, want %v", got, tt.want)
 			}
 		})
@@ -126,7 +124,7 @@ func Test_Filter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := Filter(tt.args.collection, tt.args.inclusionTest); !reflect.DeepEqual(got, tt.want) {
+			if got := helpers.Filter(tt.args.collection, tt.args.inclusionTest); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Filter() = %v, want %v", got, tt.want)
 			}
 		})
@@ -163,29 +161,9 @@ func TestReduce(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := Reduce(tt.args.c, tt.args.counter, tt.args.initialCount); got != tt.want {
+			if got := helpers.Reduce(tt.args.c, tt.args.counter, tt.args.initialCount); got != tt.want {
 				t.Errorf("Reduce() = %v, want %v", got, tt.want)
 			}
 		})
-	}
-}
-
-// MARK: Reflection Helpers
-
-func Test_PointerElement(t *testing.T) {
-	var value *string = stringPointer("something")
-	_, err := PointerTo(reflect.ValueOf(value))
-
-	if err != nil {
-		t.Errorf(`expected error to be nil, but got %v`, err)
-	}
-}
-
-func Test_PointerElement_WhenNil(t *testing.T) {
-	var value *string
-	_, err := PointerTo(reflect.ValueOf(value))
-
-	if err == nil {
-		t.Errorf(`expected an error but got nil`)
 	}
 }

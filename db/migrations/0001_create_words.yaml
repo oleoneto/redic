@@ -1,0 +1,14 @@
+schema: 3
+name: CreateWords
+changes:
+  up:
+    - |
+      CREATE TABLE words (
+        id INTEGER NOT NULL PRIMARY KEY,
+        word VARCHAR NOT NULL,
+        part_of_speech CHAR NOT NULL,
+
+        CONSTRAINT unique_word UNIQUE (word, part_of_speech)
+      )
+  down:
+    - DROP TABLE words
