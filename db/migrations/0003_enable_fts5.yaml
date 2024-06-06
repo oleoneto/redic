@@ -4,15 +4,9 @@ changes:
   up:
     - |
       CREATE VIRTUAL TABLE redic_
-        USING fts5(definitions, word_id);
+        USING fts5(definitions, word_id)
     - |
       INSERT INTO redic_ (definitions, word_id)
-        (
-          SELECT
-            d.definitions,
-            d.word_id
-          FROM
-            definitions d
-        )
+      SELECT d.definitions, d.word_id FROM definitions d
   down:
     - DROP TABLE redic_

@@ -10,6 +10,7 @@ import (
 )
 
 type Word struct {
+	EntryCode    string   //
 	PartOfSpeech string   // a
 	Word         string   // emerging
 	Definitions  []string // comming into existence
@@ -25,15 +26,15 @@ func (w *Word) Save(ctx context.Context, db db.SqlEngineProtocol) error {
 
 	query := `
 		INSERT INTO
-			words (word, part_of_speech)
-		VALUES ($1, $2)
+			words (word, part_of_speech, wordnet_code)
+		VALUES ($1, $2, $3)
 		ON CONFLICT
-			(word, part_of_speech)
+			(word, part_of_speech, wordnet_code)
 		DO NOTHING
 		RETURNING
 			id
 		`
-	r, err := t.QueryContext(ctx, query, w.Word, w.PartOfSpeech)
+	r, err := t.QueryContext(ctx, query, w.Word, w.PartOfSpeech, w.EntryCode)
 	if err != nil {
 		logrus.Errorln(helpers.GetCurrentFuncName(), err)
 		t.Rollback()

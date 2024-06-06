@@ -63,6 +63,7 @@ func (we *DictEntry) Words() []Word {
 
 	for i, word := range we.Members {
 		words[i] = Word{
+			EntryCode:    we.Identifier,
 			Word:         word,
 			Definitions:  we.Definitions,
 			PartOfSpeech: we.PartOfSpeech,

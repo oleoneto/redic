@@ -18,15 +18,13 @@ type (
 	WordNet struct {
 		loader LoaderFunc
 		reader ReaderFunc
-		parser ParserFunc
 	}
 )
 
-func NewWordNet(l LoaderFunc, r ReaderFunc, p ParserFunc) *WordNet {
+func NewWordNet(l LoaderFunc, r ReaderFunc) *WordNet {
 	return &WordNet{
 		loader: l,
 		reader: r,
-		parser: p,
 	}
 }
 
@@ -39,7 +37,7 @@ func (wn *WordNet) LoadFiles(ctx context.Context, dir string) []fs.DirEntry {
 	return files
 }
 
-func (wn *WordNet) ParseContent(ctx context.Context, dir string, files []fs.DirEntry) error {
+func (wn *WordNet) ParseContent(ctx context.Context, dir string, files []fs.DirEntry, parser ParserFunc) error {
 	for _, de := range files {
 		if de.IsDir() || !strings.HasSuffix(de.Name(), ".yaml") {
 			logrus.Errorln(de.Name(), "Error: Skipping invalid YAML file.")
@@ -54,7 +52,7 @@ func (wn *WordNet) ParseContent(ctx context.Context, dir string, files []fs.DirE
 			continue
 		}
 
-		go wn.parser(contents)
+		go parser(contents)
 	}
 
 	return nil

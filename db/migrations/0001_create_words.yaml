@@ -7,8 +7,9 @@ changes:
         id INTEGER NOT NULL PRIMARY KEY,
         word VARCHAR NOT NULL,
         part_of_speech CHAR NOT NULL,
+        wordnet_code VARCHAR NOT NULL,
 
-        CONSTRAINT unique_word UNIQUE (word, part_of_speech)
+        CONSTRAINT unique_word UNIQUE (word, part_of_speech, wordnet_code)
       )
   down:
     - DROP TABLE words
