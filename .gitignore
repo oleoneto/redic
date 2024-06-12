@@ -227,3 +227,6 @@ Temporary Items
 rd.*
 redic
 redic.*
+turso.db*
+dictionary.db*
+dictionary.sqlite*

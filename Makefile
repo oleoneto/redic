@@ -1,14 +1,12 @@
+GOBIN := $(GOPATH)/bin
+LIBNAME := redic
+
 build:
-	CGO_ENABLED=1 go build -tags "json1 fts5 foreign_keys math_functions" 
+	CGO_ENABLED=1 go build -tags "json1 fts5 foreign_keys math_functions" -o $(LIBNAME)
 
-run: build
-	./redic
+install: build
+	cp $(LIBNAME) $(GOBIN)/$(LIBNAME)
 
-search: build
-	./redic search brother spouse -o yaml | yq
-
-define: build
-	./redic define mother -o yaml | yq
-
-load: build
-	./redic build -n redic.db -d ./wordnet/english
+rebuild: install
+	redic create-tables --adapter sqlite3 -n dictionary.sqlite --time
+	redic reindex --adapter sqlite3 -n dictionary.sqlite -d ./wordnet/english --time

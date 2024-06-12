@@ -19,7 +19,7 @@ var DefineCmd = &cobra.Command{
 	},
 	PersistentPostRun: state.AfterHook,
 	Run: func(cmd *cobra.Command, args []string) {
-		ctx, cancel := context.WithTimeout(context.TODO(), 10*time.Minute)
+		ctx, cancel := context.WithTimeout(context.TODO(), 2*time.Second)
 		defer cancel()
 
 		q := query.NewQuery(state.Database)
@@ -31,4 +31,14 @@ var DefineCmd = &cobra.Command{
 
 		state.Writer.Print(definitions)
 	},
+}
+
+func init() {
+	DefineCmd.Flags().StringVarP(&state.Flags.DatabaseName, "database-name", "n", state.Flags.DatabaseName, "database name")
+
+	switch state.Flags.Engine.String() {
+	case "postgresql":
+	default:
+		DefineCmd.MarkFlagRequired("database-name")
+	}
 }

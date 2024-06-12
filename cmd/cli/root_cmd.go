@@ -25,13 +25,16 @@ func init() {
 	RootCmd.AddCommand(VersionCmd)
 	RootCmd.AddCommand(SearchCmd)
 	RootCmd.AddCommand(DefineCmd)
-	RootCmd.AddCommand(BuildCmd)
+	RootCmd.AddCommand(CreateTablesCmd)
+	RootCmd.AddCommand(ReindexCmd)
 }
 
 func setupGlobalFlags() {
+	RootCmd.PersistentFlags().BoolVar(&state.Flags.VerboseLogging, "verbose", state.Flags.VerboseLogging, "enable detailed logging")
 	RootCmd.PersistentFlags().VarP(state.Flags.OutputFormat, "output", "o", "output format")
 	RootCmd.PersistentFlags().StringVarP(&state.Flags.OutputTemplate, "output-template", "y", state.Flags.OutputTemplate, "template (used when output format is 'gotemplate')")
 
 	// Migrator configuration
 	RootCmd.PersistentFlags().VarP(state.Flags.Engine, "adapter", "a", "database adapter")
+	RootCmd.PersistentFlags().BoolVar(&state.Flags.TimeExecutions, "time", state.Flags.TimeExecutions, "time executions")
 }

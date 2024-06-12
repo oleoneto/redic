@@ -6,6 +6,9 @@ import (
 	"strings"
 
 	"github.com/oleoneto/redic/db"
+	"github.com/oleoneto/redic/pkg/core"
+	"github.com/oleoneto/redic/pkg/helpers"
+	"github.com/sirupsen/logrus"
 )
 
 type Query struct{ database db.SqlEngineProtocol }
@@ -111,4 +114,79 @@ func (Q *Query) Search(ctx context.Context, terms ...string) (SearchResult, erro
 	}
 
 	return results, nil
+}
+
+func (Q *Query) SaveWords(ctx context.Context, words []core.Word) error {
+	t, terr := Q.database.BeginTx(ctx, nil)
+	if terr != nil {
+		return terr
+	}
+
+	var values, definitionValues string
+
+	var args []any
+	var definitionArgs []any
+
+	for _, word := range words {
+		values += `(?, ?, ?), `        // word, part_of_speech, ili
+		definitionValues += `(?, ?), ` // word_id, definition
+		args = append(args, word.Word, word.PartOfSpeech, word.EntryCode)
+	}
+
+	values = strings.TrimSpace(values)
+	values = strings.TrimRight(values, ",")
+
+	definitionValues = strings.TrimSpace(definitionValues)
+	definitionValues = strings.TrimRight(definitionValues, ",")
+
+	query := fmt.Sprintf(`
+	INSERT INTO
+		words (word, part_of_speech, ili)
+	VALUES %s
+		ON CONFLICT (word, part_of_speech, ili) DO NOTHING
+	RETURNING id`, values)
+
+	r, err := t.QueryContext(ctx, query, args...)
+	if err != nil {
+		logrus.Errorln(helpers.GetCurrentFuncName(), err)
+		t.Rollback()
+		return err
+	}
+	defer r.Close()
+
+	var wordIds []int
+	for r.Next() {
+		var id int
+		err := r.Scan(&id)
+		if err != nil {
+			t.Rollback()
+			return err
+		}
+
+		wordIds = append(wordIds, id)
+		definitionArgs = append(definitionArgs, id, strings.Join(words[len(wordIds)-1].Definitions, "| "))
+	}
+
+	tids := len(wordIds)
+	twords := len(words)
+
+	if tids != twords {
+		t.Rollback()
+		return nil // fmt.Errorf(`received %d saved ids for %d words`, tids, twords)
+	}
+
+	dquery := fmt.Sprintf(`
+	INSERT INTO
+		definitions (word_id, definitions)
+	VALUES %s
+	`, definitionValues)
+
+	_, err = t.ExecContext(ctx, dquery, definitionArgs...)
+	if err != nil {
+		logrus.Errorln(helpers.GetCurrentFuncName(), err)
+		t.Rollback()
+		return err
+	}
+
+	return t.Commit()
 }

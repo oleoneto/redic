@@ -1,9 +1,8 @@
 package main
 
 import (
+	_ "github.com/joho/godotenv/autoload"
 	"github.com/oleoneto/redic/cmd/cli"
-
-	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func main() {

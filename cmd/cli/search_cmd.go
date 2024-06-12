@@ -35,6 +35,16 @@ var SearchCmd = &cobra.Command{
 	},
 }
 
+func init() {
+	SearchCmd.Flags().StringVarP(&state.Flags.DatabaseName, "database-name", "n", state.Flags.DatabaseName, "database name")
+
+	switch state.Flags.Engine.String() {
+	case "postgresql":
+	default:
+		SearchCmd.MarkFlagRequired("database-name")
+	}
+}
+
 // -------------------------------------------
 
 type QueryWord query.Word

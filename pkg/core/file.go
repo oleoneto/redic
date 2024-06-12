@@ -44,6 +44,10 @@ package core
 
 type DictFile map[string]DictEntry
 
+/**
+ * TABLE:
+ *
+ */
 type DictEntry struct {
 	Atributes    []string `yaml:"atribute" json:"atribute,omitempty"`
 	Definitions  []string `yaml:"definition" json:"definition,omitempty"`
