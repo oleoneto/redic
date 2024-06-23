@@ -8,8 +8,9 @@ import (
 
 	"log"
 
+	"github.com/oleoneto/redic/app"
+	"github.com/oleoneto/redic/app/domain/external"
 	pkgcore "github.com/oleoneto/redic/pkg/core"
-	"github.com/oleoneto/redic/pkg/query"
 	"github.com/spf13/cobra"
 )
 
@@ -95,8 +96,6 @@ var ReindexCmd = &cobra.Command{
 		ctx, cancel := context.WithTimeout(context.TODO(), 15*time.Minute)
 		defer cancel()
 
-		q := query.NewQuery(state.Database)
-
 		parser := pkgcore.DefaultParser(
 			os.ReadDir,
 			os.ReadFile,
@@ -107,49 +106,56 @@ var ReindexCmd = &cobra.Command{
 			state.Flags.Directory,
 		)
 
-		_, err := parser.ParseFiles(
-			ctx,
-			state.Flags.Directory,
-			files,
-			func(f *pkgcore.ParsedFile) error {
-				state.Signaler <- f.Data
-				return nil
-			},
-		)
-
-		if err != nil {
-			panic(err)
+		if len(files) == 0 {
+			return
 		}
 
-		state.Database.Exec("PRAGMA journal_mode=WAL")
+		// NOTE: Ensure tables exist
+		// state.Database.QueryContext(ctx, )
 
-		for i, f := range files {
-			select {
-			case entries := <-state.Signaler:
-				total := len(entries)
-				for _, e := range entries {
-					if err := q.SaveWords(ctx, e.Words()); err != nil {
-						panic(err)
-					}
+		var wordCounter int
+		for entries := range parser.ParseFilesChan(ctx, state.Flags.Directory, files) {
+			total := len(entries)
+
+			for _, e := range entries {
+				// TODO: Review arguments to function call
+				if err := app.DictionaryController.CreateWords(ctx, []external.NewWordInput{}); err != nil {
+					panic(err)
 				}
-				fmt.Printf("#%d -  %d entries in %s\n", i+1, total, f.Name())
-
-				// Last item
-				if i == len(files)-1 {
-					close(state.Signaler)
-
-					_, err := state.Database.Exec("INSERT INTO redic_ (definitions, word_id) SELECT definitions, word_id FROM definitions")
-					if err != nil {
-						fmt.Println("Failed to rebuild dictionary 😢")
-						panic(err)
-					}
-
-					fmt.Println("Done rebuilding 🎉")
-				}
-			case <-ctx.Done():
-				os.Exit(0)
+				wordCounter += len(e.Words())
 			}
+
+			fmt.Printf("%d entries processed\n", total)
 		}
+
+		fmt.Printf("%d words indexed\n", wordCounter)
+
+		// .................................
+		// .................................
+		// .................................
+
+		/*
+			for i, f := range files {
+				select {
+				case entries := <-state.Signaler:
+
+					// Last item
+					if i == len(files)-1 {
+						close(state.Signaler)
+
+						_, err := state.Database.Exec("INSERT INTO redic_ (definitions, word_id) SELECT definitions, word_id FROM definitions")
+						if err != nil {
+							fmt.Println("Failed to rebuild dictionary 😢")
+							panic(err)
+						}
+
+						fmt.Println("Done rebuilding 🎉")
+					}
+				case <-ctx.Done():
+					os.Exit(0)
+				}
+			}
+		*/
 	},
 }
 

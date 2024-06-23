@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/oleoneto/redic/cmd/cli/core"
+	"github.com/oleoneto/redic/cmd/cli/core/formatters"
 	"github.com/spf13/cobra"
 )
 
@@ -42,4 +42,4 @@ func (v *Version) TableWriter() table.Writer {
 
 var version = &Version{Major: "0", Minor: "1", Patch: "0-alpha"}
 
-var _ core.TableFormattable = (*Version)(nil)
+var _ formatters.TableFormattable = (*Version)(nil)

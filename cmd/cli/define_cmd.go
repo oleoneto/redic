@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/oleoneto/redic/pkg/query"
+	"github.com/oleoneto/redic/app"
+	"github.com/oleoneto/redic/app/domain/external"
 	"github.com/spf13/cobra"
 )
 
@@ -22,9 +23,8 @@ var DefineCmd = &cobra.Command{
 		ctx, cancel := context.WithTimeout(context.TODO(), 2*time.Second)
 		defer cancel()
 
-		q := query.NewQuery(state.Database)
-
-		definitions, err := q.Define(ctx, args[0], "")
+		// TODO: Review arguments to function call
+		definitions, err := app.DictionaryController.GetDefinition(ctx, external.GetWordDefinitionsInput{Word: args[0], PartOfSpeech: "*"})
 		if err != nil {
 			panic(err)
 		}

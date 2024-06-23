@@ -90,3 +90,32 @@ func (wn *Parser) ParseFiles(ctx context.Context, dir string, files []fs.DirEntr
 
 	return entries, nil
 }
+
+func (wn *Parser) ParseFilesChan(ctx context.Context, dir string, files []fs.DirEntry) <-chan map[string]DictEntry {
+	dst := make(chan map[string]DictEntry)
+
+	var next int
+	var total = len(files)
+
+	parsedFile, err := wn.ParseFile(ctx, dir, files[next])
+	if err != nil || parsedFile == nil {
+		return nil
+	}
+
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return // prevent leak
+			case dst <- parsedFile.Data:
+				next++
+				if next >= total {
+					close(dst)
+					return // prevent leak
+				}
+			}
+		}
+	}()
+
+	return dst
+}

@@ -230,3 +230,4 @@ redic.*
 turso.db*
 dictionary.db*
 dictionary.sqlite*
+!redic.sqlite
