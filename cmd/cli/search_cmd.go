@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/oleoneto/redic/app"
-	"github.com/oleoneto/redic/app/domain/external"
+	"github.com/oleoneto/redic/app/domain/types"
 	"github.com/spf13/cobra"
 )
 
@@ -27,21 +27,11 @@ var SearchCmd = &cobra.Command{
 		fmt.Println("-o", state.Flags.OutputFormat)
 
 		// TODO: Add arguments to function call
-		words, err := app.DictionaryController.FindMatchingWords(ctx, external.GetDescribedWordsInput{})
+		words, err := app.DictionaryController.FindMatchingWords(ctx, types.GetDescribedWordsInput{})
 		if err != nil {
 			panic(err)
 		}
 
 		state.Writer.Print(words)
 	},
-}
-
-func init() {
-	SearchCmd.Flags().StringVarP(&state.Flags.DatabaseName, "database-name", "n", state.Flags.DatabaseName, "database name")
-
-	switch state.Flags.Engine.String() {
-	case "postgresql":
-	default:
-		SearchCmd.MarkFlagRequired("database-name")
-	}
 }

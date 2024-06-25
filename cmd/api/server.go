@@ -4,8 +4,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/google/uuid"
 	"github.com/oleoneto/redic/app"
 	"github.com/oleoneto/redic/cmd/api/adapters"
+	"github.com/oleoneto/redic/cmd/api/middleware"
 )
 
 func CreateAPI(config fiber.Config) *fiber.App {
@@ -14,8 +16,8 @@ func CreateAPI(config fiber.Config) *fiber.App {
 	// MARK: Middleware
 
 	server.Use(recover.New(recover.Config{EnableStackTrace: true}))
-	server.Use(requestid.New(requestid.ConfigDefault))
-	// server.Use()
+	server.Use(requestid.New(requestid.Config{Generator: uuid.NewString}))
+	server.Use(middleware.RequestLoggerMiddleware)
 
 	// MARK: Routes
 

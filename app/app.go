@@ -2,14 +2,16 @@ package app
 
 import (
 	"github.com/oleoneto/redic/app/controllers"
-	"github.com/oleoneto/redic/app/domain/external"
-	"github.com/oleoneto/redic/app/repositories"
-	dbsql "github.com/oleoneto/redic/app/repositories/sql"
+	"github.com/oleoneto/redic/app/domain/protocols"
+	"github.com/oleoneto/redic/app/pkg/repositories"
+	dbsql "github.com/oleoneto/redic/app/pkg/repositories/sql"
 )
+
+var CommitHash = "unset"
 
 // Dependencies as per their interfaces
 var (
-	DatabaseEngine external.SqlEngineProtocol
+	DatabaseEngine protocols.SqlBackend
 
 	DictionaryRepository repositories.DictionaryRepository
 
@@ -19,7 +21,7 @@ var (
 	NilValidator = func(any) map[string][]string { return map[string][]string{} }
 )
 
-func New(databaseOptions external.DBConnectOptions) {
+func New(databaseOptions protocols.DBConnectOptions) {
 	if databaseOptions.DB != nil {
 		DatabaseEngine = databaseOptions.DB
 	} else {

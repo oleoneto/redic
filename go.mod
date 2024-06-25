@@ -5,6 +5,7 @@ go 1.22
 require (
 	github.com/drewstinnett/gout/v2 v2.3.0
 	github.com/gofiber/fiber/v2 v2.52.4
+	github.com/google/uuid v1.5.0
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/jedib0t/go-pretty/v6 v6.5.9
 	github.com/joho/godotenv v1.5.1
@@ -25,7 +26,6 @@ require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/drewstinnett/go-output-format/v2 v2.0.5 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/google/uuid v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect

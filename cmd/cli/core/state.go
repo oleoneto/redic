@@ -10,9 +10,9 @@ import (
 	gJSON "github.com/drewstinnett/gout/v2/formats/json"
 	gYAML "github.com/drewstinnett/gout/v2/formats/yaml"
 	"github.com/oleoneto/go-toolkit/files"
-	"github.com/oleoneto/redic/app/domain/external"
+	"github.com/oleoneto/redic/app/domain/protocols"
+	"github.com/oleoneto/redic/app/pkg/helpers"
 	"github.com/oleoneto/redic/cmd/cli/core/formatters"
-	"github.com/oleoneto/redic/pkg/helpers"
 	"github.com/spf13/cobra"
 )
 
@@ -37,13 +37,13 @@ type CommandState struct {
 	Flags              CommandFlags
 	ExecutionStartTime time.Time
 	ExecutionExitLog   []any
-	Database           external.SqlEngineProtocol
+	Database           protocols.SqlBackend
 }
 
 var cliDir = ".redic"
 
 var defaultFlags = CommandFlags{
-	DatabaseName:    "redic.sqlite",
+	DatabaseName:    "r.sqlite",
 	DatabaseURL:     helpers.PointerTo(os.Getenv("DATABASE_URL")),
 	DevelopmentMode: false,
 	OutputFormat: &FlagEnum{

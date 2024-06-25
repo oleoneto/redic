@@ -3,9 +3,7 @@ package cli
 import (
 	"embed"
 	"fmt"
-	"io"
 	"log"
-	"os"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/oleoneto/go-toolkit/files"
@@ -17,7 +15,9 @@ import (
 // wherein dictionary files are stored
 var virtualFS embed.FS
 
-var dbfile = "data/redic.sqlite"
+var buildHash string
+
+var dbfile = "redic.db"
 
 var state = core.NewCommandState()
 
@@ -26,40 +26,13 @@ var RootCmd = &cobra.Command{
 	Short:             "ReDic, for when you know the words but can't quite find THE word.",
 	PersistentPreRun:  state.BeforeHook,
 	PersistentPostRun: state.AfterHook,
-	Run:               func(cmd *cobra.Command, args []string) { cmd.Help() },
-}
-
-var InitCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initialize the CLI by creating its required configuration files",
+	PostRun: func(cmd *cobra.Command, args []string) {
+		if buildHash != "" {
+			fmt.Println("build", buildHash)
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		state.Flags.HomeDirectory, err = homedir.Dir()
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		state.Flags.ConfigDir.Create(files.FileGenerator{}, state.Flags.HomeDirectory)
-
-		// NOTE: Copy embeded dictionary to local filesystem
-
-		dictionary, err := virtualFS.Open(dbfile)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		dstDir := fmt.Sprintf("%s/%s/%s", state.Flags.HomeDirectory, state.Flags.ConfigDir.Name, dbfile)
-		dstFile, err := os.Create(dstDir)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		if _, err := io.Copy(dstFile, dictionary); err != nil {
-			log.Fatalln(err)
-		}
-
-		viper.Set("database.path", dstFile.Name())
-		viper.WriteConfig()
+		cmd.Help()
 	},
 }
 
@@ -70,8 +43,6 @@ func init() {
 	RootCmd.AddCommand(VersionCmd)
 	RootCmd.AddCommand(SearchCmd)
 	RootCmd.AddCommand(DefineCmd)
-	RootCmd.AddCommand(CreateTablesCmd)
-	RootCmd.AddCommand(ReindexCmd)
 	RootCmd.AddCommand(ServerCmd)
 }
 
@@ -103,7 +74,7 @@ func initConfig() {
 	}
 }
 
-func Execute(vfs embed.FS) error {
+func Execute(vfs embed.FS, buildHash string) error {
 	virtualFS = vfs
 
 	// MARK: Set up global glags

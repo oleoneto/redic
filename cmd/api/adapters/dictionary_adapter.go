@@ -7,7 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/oleoneto/redic/app/controllers"
-	"github.com/oleoneto/redic/app/domain/external"
+	"github.com/oleoneto/redic/app/domain/types"
 )
 
 type DictionaryControllerAdapter struct {
@@ -22,7 +22,7 @@ func (ad *DictionaryControllerAdapter) CreateWords(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.UserContext(), 2*time.Second)
 	defer cancel()
 
-	var req []external.NewWordInput
+	var req []types.NewWordInput
 
 	b := c.Body()
 	json.Unmarshal(b, &req)
@@ -39,7 +39,7 @@ func (ad *DictionaryControllerAdapter) UpdateWord(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.UserContext(), 2*time.Second)
 	defer cancel()
 
-	var req external.UpdateDefinitionInput
+	var req types.UpdateDefinitionInput
 
 	b := c.Body()
 	json.Unmarshal(b, &req)
@@ -56,10 +56,19 @@ func (ad *DictionaryControllerAdapter) GetWordDefinition(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.UserContext(), 2*time.Second)
 	defer cancel()
 
-	var req external.GetWordDefinitionsInput
+	type qparams struct {
+		PartOfSpeech types.PartOfSpeech `query:"part_of_speech"`
+		Verbatim     bool               `query:"verbatim"`
+	}
 
-	b := c.Body()
-	json.Unmarshal(b, &req)
+	var q qparams
+	c.QueryParser(&q)
+
+	var req = types.GetWordDefinitionsInput{
+		Word:         c.Params("word"),
+		PartOfSpeech: q.PartOfSpeech,
+		Verbatim:     q.Verbatim,
+	}
 
 	res, err := ad.controller.GetDefinition(ctx, req)
 	if err != nil {
@@ -73,7 +82,7 @@ func (ad *DictionaryControllerAdapter) FindWords(c *fiber.Ctx) error {
 	ctx, cancel := context.WithTimeout(c.UserContext(), 2*time.Second)
 	defer cancel()
 
-	var req external.GetDescribedWordsInput
+	var req types.GetDescribedWordsInput
 
 	b := c.Body()
 	json.Unmarshal(b, &req)

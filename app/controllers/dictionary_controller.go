@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/oleoneto/redic/app/domain/external"
-	"github.com/oleoneto/redic/pkg/helpers"
+	"github.com/oleoneto/redic/app/domain/protocols"
+	"github.com/oleoneto/redic/app/domain/types"
+	"github.com/oleoneto/redic/app/pkg/helpers"
 )
 
 type SearchMode int
@@ -31,18 +32,18 @@ type DictionarySearch struct {
 }
 
 type DictionaryController struct {
-	repository external.WordRepositoryProtocol
+	repository protocols.DictionaryBackend
 	validate   func(any) map[string][]string
 }
 
-func NewDictionaryController(repository external.WordRepositoryProtocol, validatorFunc func(any) map[string][]string) DictionaryController {
+func NewDictionaryController(repository protocols.DictionaryBackend, validatorFunc func(any) map[string][]string) DictionaryController {
 	return DictionaryController{
 		repository: repository,
 		validate:   validatorFunc,
 	}
 }
 
-func (ctr *DictionaryController) CreateWords(ctx context.Context, data []external.NewWordInput) error {
+func (ctr *DictionaryController) CreateWords(ctx context.Context, data []types.NewWordInput) error {
 	if errs := ctr.validate(data); len(errs) != 0 {
 		return fmt.Errorf(`invalid data for %v`, helpers.GetCurrentFuncName())
 	}
@@ -53,9 +54,9 @@ func (ctr *DictionaryController) CreateWords(ctx context.Context, data []externa
 }
 
 // Append to or create definitions for a dictionary entry
-func (ctr *DictionaryController) UpdateDefinition(ctx context.Context, data external.UpdateDefinitionInput) (external.AddDefinitionsOutput, error) {
+func (ctr *DictionaryController) UpdateDefinition(ctx context.Context, data types.UpdateDefinitionInput) (types.Definitions, error) {
 	if errs := ctr.validate(data); len(errs) != 0 {
-		return external.AddDefinitionsOutput{}, fmt.Errorf(`invalid data for %v`, helpers.GetCurrentFuncName())
+		return types.Definitions{}, fmt.Errorf(`invalid data for %v`, helpers.GetCurrentFuncName())
 	}
 
 	res, err := ctr.repository.AddWordDefinitions(ctx, data)
@@ -73,9 +74,9 @@ func (ctr *DictionaryController) UpdateDefinition(ctx context.Context, data exte
 //	`here` (noun):
 //	the present location;
 //	this place; location, proximal pronoun; demonstrative pronoun, location; quantifier: demonstrative determiner, singular, proximal
-func (ctr *DictionaryController) GetDefinition(ctx context.Context, data external.GetWordDefinitionsInput) (external.GetWordDefinitionsOutput, error) {
+func (ctr *DictionaryController) GetDefinition(ctx context.Context, data types.GetWordDefinitionsInput) (types.WordDefinitions, error) {
 	if errs := ctr.validate(data); len(errs) != 0 {
-		return external.GetWordDefinitionsOutput{}, fmt.Errorf(`invalid data for %v`, helpers.GetCurrentFuncName())
+		return types.WordDefinitions{}, fmt.Errorf(`invalid data for %v`, helpers.GetCurrentFuncName())
 	}
 
 	res, err := ctr.repository.GetWordDefinitions(ctx, data)
@@ -87,9 +88,9 @@ func (ctr *DictionaryController) GetDefinition(ctx context.Context, data externa
 }
 
 // Given a definition or word context, search for any matching words.
-func (ctr *DictionaryController) FindMatchingWords(ctx context.Context, data external.GetDescribedWordsInput) (external.GetDescribedWordsOutput, error) {
+func (ctr *DictionaryController) FindMatchingWords(ctx context.Context, data types.GetDescribedWordsInput) (types.DescribedWords, error) {
 	if errs := ctr.validate(data); len(errs) != 0 {
-		return external.GetDescribedWordsOutput{}, fmt.Errorf(`invalid data for %v`, helpers.GetCurrentFuncName())
+		return types.DescribedWords{}, fmt.Errorf(`invalid data for %v`, helpers.GetCurrentFuncName())
 	}
 
 	res, err := ctr.repository.GetDescribedWords(ctx, data)
@@ -98,4 +99,8 @@ func (ctr *DictionaryController) FindMatchingWords(ctx context.Context, data ext
 	}
 
 	return res, nil
+}
+
+func (ctr *DictionaryController) IndexWords(ctx context.Context) error {
+	return ctr.repository.IndexWords(ctx)
 }

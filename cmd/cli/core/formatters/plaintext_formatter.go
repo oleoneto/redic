@@ -9,7 +9,6 @@ type PlainFormatter struct{}
 func (w PlainFormatter) Format(v interface{}) ([]byte, error) {
 	s, ok := v.(Stringable)
 	if !ok {
-		fmt.Println("plainFormatter", s)
 		return []byte(fmt.Sprintf("%+v", v)), nil
 	}
 

@@ -7,13 +7,11 @@ import (
 	"github.com/oleoneto/redic/cmd/cli"
 )
 
-// var version = "unset"
-// fmt.Println(version)
-// go run -ldflags "-X main.VersionString=`git rev-parse HEAD`" main.go
-
 //go:embed data
 var data embed.FS
 
+var BuildHash string = "unset"
+
 func main() {
-	cli.Execute(data)
+	cli.Execute(data, BuildHash)
 }
