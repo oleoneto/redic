@@ -1,8 +1,9 @@
 package cli
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/oleoneto/redic/cmd/api"
+	"log"
+
+	"github.com/oleoneto/redic/cmd/web"
 	"github.com/spf13/cobra"
 )
 
@@ -11,8 +12,11 @@ var ServerCmd = &cobra.Command{
 	Short:            "Redic API server",
 	PersistentPreRun: state.ConnectDatabase,
 	Run: func(cmd *cobra.Command, args []string) {
-		api.CreateAPI(fiber.Config{}).
-			Listen(state.Flags.ServerAddr)
+		log.Fatal(
+			web.
+				CreateServer().
+				Listen(state.Flags.ServerAddr),
+		)
 	},
 }
 

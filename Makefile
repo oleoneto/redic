@@ -2,12 +2,12 @@ GOBIN := $(GOPATH)/bin
 LIBNAME := redic
 
 build:
-	CGO_ENABLED=1 go build -tags "json1 fts5 foreign_keys math_functions" -ldflags "-X main.BuildHash=`git rev-parse HEAD`" -o $(LIBNAME)
+	CGO_ENABLED=1 go build -tags "json1 fts5 foreign_keys math_functions" -o $(LIBNAME)
 
 install: build
 	cp $(LIBNAME) $(GOBIN)/$(LIBNAME)
 
-run: install
+server: install
 	redic server --verbose
 
 init: install

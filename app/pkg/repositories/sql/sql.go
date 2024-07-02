@@ -40,5 +40,7 @@ func UseSQLite(dbname string) (*sql.DB, error) {
 		return nil, err
 	}
 
+	d.Exec(`PRAGMA busy_timeout = 5000`)
+
 	return d, nil
 }

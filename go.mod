@@ -5,6 +5,7 @@ go 1.22
 require (
 	github.com/drewstinnett/gout/v2 v2.3.0
 	github.com/gofiber/fiber/v2 v2.52.4
+	github.com/gofiber/template/html/v2 v2.1.1
 	github.com/google/uuid v1.5.0
 	github.com/jackc/pgx/v5 v5.6.0
 	github.com/jedib0t/go-pretty/v6 v6.5.9
@@ -26,6 +27,8 @@ require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/drewstinnett/go-output-format/v2 v2.0.5 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/gofiber/template v1.8.3 // indirect
+	github.com/gofiber/utils v1.1.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -39,6 +42,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
+	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
@@ -47,6 +51,7 @@ require (
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/tinylib/msgp v1.1.8 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasthttp v1.51.0 // indirect
 	github.com/valyala/tcplisten v1.0.0 // indirect

@@ -43,6 +43,7 @@ func NewDictionaryController(repository protocols.DictionaryBackend, validatorFu
 	}
 }
 
+// Append to or create words + definitions to the dictionary
 func (ctr *DictionaryController) CreateWords(ctx context.Context, data []types.NewWordInput) error {
 	if errs := ctr.validate(data); len(errs) != 0 {
 		return fmt.Errorf(`invalid data for %v`, helpers.GetCurrentFuncName())
@@ -51,20 +52,6 @@ func (ctr *DictionaryController) CreateWords(ctx context.Context, data []types.N
 	err := ctr.repository.NewWords(ctx, data)
 
 	return err
-}
-
-// Append to or create definitions for a dictionary entry
-func (ctr *DictionaryController) UpdateDefinition(ctx context.Context, data types.UpdateDefinitionInput) (types.Definitions, error) {
-	if errs := ctr.validate(data); len(errs) != 0 {
-		return types.Definitions{}, fmt.Errorf(`invalid data for %v`, helpers.GetCurrentFuncName())
-	}
-
-	res, err := ctr.repository.AddWordDefinitions(ctx, data)
-	if err != nil {
-		return res, err
-	}
-
-	return res, nil
 }
 
 // Given a dictionary entry, search for its corresponding definitions.
@@ -79,7 +66,7 @@ func (ctr *DictionaryController) GetDefinition(ctx context.Context, data types.G
 		return types.WordDefinitions{}, fmt.Errorf(`invalid data for %v`, helpers.GetCurrentFuncName())
 	}
 
-	res, err := ctr.repository.GetWordDefinitions(ctx, data)
+	res, err := ctr.repository.GetWordExplanation(ctx, data)
 	if err != nil {
 		return res, err
 	}
@@ -88,12 +75,14 @@ func (ctr *DictionaryController) GetDefinition(ctx context.Context, data types.G
 }
 
 // Given a definition or word context, search for any matching words.
-func (ctr *DictionaryController) FindMatchingWords(ctx context.Context, data types.GetDescribedWordsInput) (types.DescribedWords, error) {
+func (ctr *DictionaryController) FindMatchingWords(ctx context.Context, data types.GetDescribedWordsInput) (types.WordMatches, error) {
 	if errs := ctr.validate(data); len(errs) != 0 {
-		return types.DescribedWords{}, fmt.Errorf(`invalid data for %v`, helpers.GetCurrentFuncName())
+		return types.WordMatches{}, fmt.Errorf(`invalid data for %v`, helpers.GetCurrentFuncName())
 	}
 
-	res, err := ctr.repository.GetDescribedWords(ctx, data)
+	fmt.Println(helpers.GetCurrentFuncName(), data)
+
+	res, err := ctr.repository.SearchWords(ctx, data)
 	if err != nil {
 		return res, err
 	}

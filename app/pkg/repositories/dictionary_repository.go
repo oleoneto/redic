@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/oleoneto/redic/app/domain/protocols"
@@ -52,10 +51,6 @@ func (repo *DictionaryRepository) NewWords(ctx context.Context, words []types.Ne
 
 	for _, item := range words {
 		var wordId, explanationId int64
-
-		if item.Word == "time" {
-			fmt.Println(item)
-		}
 
 		if r := t.QueryRowContext(ctx, newWord, item.Word, item.PartOfSpeech); r != nil {
 			if err := r.Scan(&wordId); err != nil {
@@ -113,9 +108,9 @@ func (repo *DictionaryRepository) AddWordDefinitions(ctx context.Context, data t
 	return res, t.Commit()
 }
 
-// GetWordDefinitions - Looks for the given word in the database dictionary and returns its definition(s).
-func (repo *DictionaryRepository) GetWordDefinitions(ctx context.Context, data types.GetWordDefinitionsInput) (types.WordDefinitions, error) {
-	var res types.WordDefinitions
+// GetWordExplanation - Looks for the given word in the database dictionary and returns its definition(s).
+func (repo *DictionaryRepository) GetWordExplanation(ctx context.Context, data types.GetWordDefinitionsInput) (types.WordDefinitions, error) {
+	var res = types.WordDefinitions{Definitions: []types.Definition{}, Word: data.Word}
 	var args = []any{data.Word}
 
 	partOfSpeechFilter := func() string {
@@ -127,7 +122,18 @@ func (repo *DictionaryRepository) GetWordDefinitions(ctx context.Context, data t
 		return "= $2"
 	}()
 
-	query := fmt.Sprintf(`SELECT id, word, part_of_speech, explanation FROM dictionary WHERE word = $1 AND part_of_speech %s`, partOfSpeechFilter)
+	query := fmt.Sprintf(`
+	SELECT
+		d.id, d.word, d.part_of_speech, d.explanation, COALESCE(a.explicit, FALSE) explicit
+	FROM
+		dictionary d
+		JOIN associations a
+			ON a.explanation_id = d.explanation_id
+			AND a.word_id = d.id
+	WHERE
+		d.word = $1
+		AND d.part_of_speech %s
+	`, partOfSpeechFilter)
 
 	r, err := repo._db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -135,67 +141,84 @@ func (repo *DictionaryRepository) GetWordDefinitions(ctx context.Context, data t
 	}
 	defer r.Close()
 
-	res = types.WordDefinitions{Word: data.Word} //Term: data.Word}
 	for r.Next() {
 		var id int
+		var explicit bool
 		var word, definition, partOfSpeech string
-		if err := r.Scan(&id, &word, &partOfSpeech, &definition); err != nil {
+		if err := r.Scan(&id, &word, &partOfSpeech, &definition, &explicit); err != nil {
 			return res, err
 		}
 
-		res.Definitions = append(res.Definitions, struct {
-			PartOfSpeech types.PartOfSpeech `json:"part_of_speech"`
-			Definition   string             `json:"definition"`
-		}{
+		res.Definitions = append(res.Definitions, types.Definition{
 			PartOfSpeech: types.PartOfSpeech(partOfSpeech),
 			Definition:   definition,
+			Explicit:     explicit,
 		})
 	}
 
 	return res, nil
 }
 
-// FindMatchingWords - Looks for all matching words for the provided word context.
-func (repo *DictionaryRepository) GetDescribedWords(ctx context.Context, data types.GetDescribedWordsInput) (types.DescribedWords, error) {
-	var res = types.DescribedWords{ProvidedDescriptions: data.Descriptions}
+// SearchWords - Looks for all matching words for the provided word context.
+func (repo *DictionaryRepository) SearchWords(ctx context.Context, data types.GetDescribedWordsInput) (types.WordMatches, error) {
+	var res = types.WordMatches{ProvidedDescriptions: data.Tokens, MatchingWords: []types.MatchingWord{}}
 
-	var args = []any{}
-	for _, d := range data.Descriptions {
-		args = append(args, d)
-	}
+	var args = []any{data.Tokens}
 
-	matchers := helpers.EnumerateSQLArgs(
-		len(args),
-		0,
-		func(index, counter int) string {
-			if index > 0 {
-				return fmt.Sprintf("OR MATCH $%d", index)
-			}
-			return fmt.Sprintf("MATCH $%d", index)
-		},
-	)
+	filters := func() string {
+		f := []string{}
 
-	query := fmt.Sprintf(`
-	SELECT
-		w.id,
-		w.word,
-		w.part_of_speech,
-		redic_.definitions
-	FROM
-		words w
-		JOIN redic_ ON 
-			redic_.word_id = w.id
-	WHERE
-		redic_.definitions
+		if data.Cursor != "" {
+			f = append(f, fmt.Sprintf(`id > $%d`, len(args)+1))
+			args = append(args, data.Cursor)
+		}
+
+		if data.PartOfSpeech != "" {
+			args = append(args, data.PartOfSpeech)
+			f = append(f, fmt.Sprintf(`part_of_speech = $%d`, len(args)+1))
+		}
+
+		if len(f) == 0 {
+			return ""
+		}
+
+		return `WHERE ` + strings.Join(f, "AND")
+	}()
+
+	query := func() string {
+		if data.Tokens != "" {
+			return fmt.Sprintf(`
+			SELECT
+				word_id,
+				word,
+				w.part_of_speech,
+				definition,
+				highlight (redic_, 2, '<b>', '</b>') AS matched
+			FROM
+				redic_ ($1)
+				JOIN words w ON redic_.word_id = w.id
+			%s
+			ORDER BY
+				RANK
+			LIMIT 100
+			`, filters)
+		}
+
+		return fmt.Sprintf(`
+		SELECT
+			id,
+			word,
+			part_of_speech,
+			explanation,
+			"" AS highlight
+		FROM
+			dictionary
 		%s
-	ORDER BY
-		rank,
-		w.word
-	`, matchers)
-
-	fmt.Println(query)
-
-	os.Exit(1)
+		ORDER BY
+			word
+		LIMIT 100
+		`, filters)
+	}()
 
 	r, err := repo._db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -204,18 +227,14 @@ func (repo *DictionaryRepository) GetDescribedWords(ctx context.Context, data ty
 	defer r.Close()
 
 	for r.Next() {
-		var id, word, partOfSpeech, definition string
+		var id int
+		var word, partOfSpeech, definition, highlight string
 
-		if err := r.Scan(&id, &word, &partOfSpeech, &definition); err != nil {
+		if err := r.Scan(&id, &word, &partOfSpeech, &definition, &highlight); err != nil {
 			return res, err
 		}
 
-		res.MatchingWords = append(res.MatchingWords, struct {
-			Id           string
-			Word         string
-			PartOfSpeech types.PartOfSpeech
-			Definition   string
-		}{
+		res.MatchingWords = append(res.MatchingWords, types.MatchingWord{
 			Id:           id,
 			Word:         word,
 			PartOfSpeech: types.PartOfSpeech(partOfSpeech),
@@ -223,11 +242,15 @@ func (repo *DictionaryRepository) GetDescribedWords(ctx context.Context, data ty
 		})
 	}
 
+	if len(res.MatchingWords) > 0 {
+		res.Cursor = fmt.Sprint(res.MatchingWords[len(res.MatchingWords)-1].Id)
+	}
+
 	return res, nil
 }
 
 func (repo *DictionaryRepository) IndexWords(ctx context.Context) error {
-	query := `INSERT INTO redic_ (word_id, word, definition) SELECT id, word, explanation FROM dictionary`
+	query := `DELETE FROM redic_; INSERT INTO redic_ (word_id, word, definition) SELECT id, word, explanation FROM dictionary`
 
 	if _, err := repo._db.ExecContext(ctx, query); err != nil {
 		return err

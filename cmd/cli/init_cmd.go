@@ -27,6 +27,9 @@ var InitCmd = &cobra.Command{
 	Use:   "init",
 	Short: "Initialize the CLI by creating its required configuration files",
 	Run: func(cmd *cobra.Command, args []string) {
+		ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Minute)
+		defer cancel()
+
 		var err error
 		state.Flags.HomeDirectory, err = homedir.Dir()
 		if err != nil {
@@ -40,7 +43,7 @@ var InitCmd = &cobra.Command{
 		viper.WriteConfig()
 
 		if copyDefaultDatabase {
-			CopyDatabase(cmd, args)
+			CopyDatabase(ctx, cmd, args)
 			return
 		}
 
@@ -48,19 +51,14 @@ var InitCmd = &cobra.Command{
 			state.ConnectDatabase(cmd, args)
 		}
 
-		CreateTables(cmd, args)
+		CreateTables(ctx, cmd, args)
 
-		PopulateTables(cmd, args)
+		PopulateTables(ctx, cmd, args)
 	},
 }
 
-func CopyDatabase(cmd *cobra.Command, args []string) {
-	// if !copyDefaultDatabase {
-	// 	return
-	// }
-
-	// Copy embeded dictionary to local filesystem
-
+// Copy embeded dictionary to local filesystem
+func CopyDatabase(_ context.Context, cmd *cobra.Command, args []string) {
 	f := filepath.Join("data", dbfile)
 	dictionary, err := virtualFS.Open(f)
 	if err != nil {
@@ -78,7 +76,7 @@ func CopyDatabase(cmd *cobra.Command, args []string) {
 	}
 }
 
-func CreateTables(cmd *cobra.Command, args []string) {
+func CreateTables(_ context.Context, cmd *cobra.Command, args []string) {
 	if !resetTables {
 		return
 	}
@@ -112,7 +110,7 @@ func CreateTables(cmd *cobra.Command, args []string) {
 	}
 }
 
-func PopulateTables(cmd *cobra.Command, args []string) {
+func PopulateTables(_ context.Context, cmd *cobra.Command, args []string) {
 	if !repopulateDatabase {
 		return
 	}
